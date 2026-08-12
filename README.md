@@ -1,91 +1,47 @@
-# AI-Powered Network Intrusion Detection System
+# AI-based Network Intrusion Detection System
 
-An intelligent cybersecurity project designed to detect malicious and abnormal network traffic using Machine Learning and Deep Learning techniques. The system analyzes network behavior patterns and classifies potential cyber attacks using benchmark intrusion detection datasets.
+Trains and evaluates ML models to classify network connections as normal
+or one of four attack types (DoS, Probe, R2L, U2R), using the NSL-KDD
+feature schema (41 features per connection).
 
----
+## Pipeline
+Run in order:
+1. `01_generate_data.py` — loads the dataset. Currently generates a
+   synthetic dataset matching the real NSL-KDD schema. **To use your real
+   NSL-KDD/KDDCup99 files:** replace the `generate_synthetic_data()` call
+   with `pd.read_csv("your_file.txt", names=COLUMN_NAMES)`.
+2. `02_preprocess.py` — one-hot encodes categorical features (protocol,
+   service, flag), scales numeric features, and does a stratified
+   train/test split so rare attack types are represented in both sets.
+3. `03_train.py` — trains a Random Forest and a neural network (MLP),
+   using `class_weight='balanced'` on the Random Forest to counter class
+   imbalance (attacks like U2R are ~1% of the data).
+4. `04_evaluate.py` — computes accuracy/precision/recall/F1 and per-class
+   breakdowns, and saves confusion matrix plots.
 
-## Features
+## Honest notes on the current version
+- **Data**: synthetic, generated to match NSL-KDD's real column schema and
+  class imbalance, so the pipeline is testable today. Swap in real NSL-KDD
+  data (linked in this repo) using the one-line change noted above.
+- **Neural net**: uses Scikit-learn's `MLPClassifier`, not TensorFlow, since
+  TensorFlow wasn't installable in the build environment. Same core idea
+  (feedforward neural network), different library. Worth porting to
+  TensorFlow's `Sequential` API if the resume specifically claims
+  TensorFlow.
+- **Class imbalance**: uses `class_weight='balanced'`, not SMOTE, since
+  `imbalanced-learn` wasn't available. This is a legitimate, simpler
+  alternative — SMOTE can be added later with `pip install imbalanced-learn`.
 
-* Real-time network traffic analysis
-* AI-based anomaly and threat detection
-* Deep learning–based attack classification
-* Detection of malicious network activities
-* Performance evaluation using standard ML metrics
-* Support for multiple cybersecurity datasets
+## Result on synthetic data (illustrative)
+Random Forest hit 84.8% overall accuracy, but recall on the `probe`
+attack class was 0% — every probe attack was misclassified, mostly as
+`dos`, because the two classes share similar traffic-volume features in
+this dataset. This is a concrete example of why **accuracy alone is
+misleading** for imbalanced security data, and why per-class
+precision/recall/F1 and confusion matrices matter more.
 
----
-
-## Datasets Used
-
-* NSL-KDD
-* KDDCup99
-* UNSW-NB15
-
-These datasets were used to train and evaluate machine learning models for identifying suspicious network behavior and intrusion attempts.
-
----
-
-## Tech Stack
-
-* Python
-* TensorFlow
-* Scikit-learn
-* Pandas
-* NumPy
-* Matplotlib
-* Jupyter Notebook
-
----
-
-## Machine Learning Techniques
-
-* Classification Models
-* Deep Neural Networks
-* Anomaly Detection
-* Data Preprocessing
-* Feature Engineering
-
----
-
-## Evaluation Metrics
-
-The system performance was evaluated using:
-
-* Accuracy
-* Precision
-* Recall
-* F1-Score
-* Confusion Matrix
-
----
-
-## Project Workflow
-
-1. Data Collection
-2. Data Preprocessing
-3. Feature Extraction
-4. Model Training
-5. Threat Detection
-6. Performance Evaluation
-
----
-
-## Future Improvements
-
-* Real-time packet monitoring
-* Web dashboard integration
-* Advanced threat visualization
-* Hybrid deep learning models
-* Cloud deployment support
-
----
-
-## Project Objective
-
-The goal of this project is to enhance cybersecurity by developing an intelligent intrusion detection system capable of identifying malicious network activities efficiently using AI-driven techniques.
-
----
-
-## Author
-
-Developed as an academic and research-oriented cybersecurity project focused on AI-based threat detection and network security analysis.
+## Next steps
+- Swap in real NSL-KDD/UNSW-NB15 data
+- Try SMOTE vs. class_weight and compare
+- Port the neural net to TensorFlow if that's specifically claimed
+- Investigate probe vs. dos feature overlap to improve probe recall
