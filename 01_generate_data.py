@@ -29,7 +29,7 @@ COLUMN_NAMES = [
     "srv_diff_host_rate", "dst_host_count", "dst_host_srv_count",
     "dst_host_same_srv_rate", "dst_host_diff_srv_rate", "dst_host_same_src_port_rate",
     "dst_host_srv_diff_host_rate", "dst_host_serror_rate", "dst_host_srv_serror_rate",
-    "dst_host_rerror_rate", "dst_host_srv_rerror_rate", "label"
+    "dst_host_rerror_rate", "dst_host_srv_rerror_rate", "label", "difficulty"
 ]
 
 PROTOCOLS = ["tcp", "udp", "icmp"]
@@ -102,8 +102,24 @@ def generate_synthetic_data(n_rows=25000):
 
 
 if __name__ == "__main__":
-    df = generate_synthetic_data()
-    df.to_csv("/home/claude/nids/nids_data.csv", index=False)
+    df = pd.read_csv("NSL-KDD/KDDTrain+.txt", names=COLUMN_NAMES)
+    df = df.drop(columns=["difficulty"])
+
+    attack_map = {
+        "neptune": "dos", "back": "dos", "land": "dos", "pod": "dos",
+        "smurf": "dos", "teardrop": "dos", "mailbomb": "dos", "apache2": "dos",
+        "processtable": "dos", "udpstorm": "dos", "worm": "dos",
+        "satan": "probe", "ipsweep": "probe", "nmap": "probe", "portsweep": "probe",
+        "mscan": "probe", "saint": "probe",
+        "guess_passwd": "r2l", "ftp_write": "r2l", "imap": "r2l", "phf": "r2l",
+        "multihop": "r2l", "warezmaster": "r2l", "warezclient": "r2l",
+        "spy": "r2l", "xlock": "r2l", "xsnoop": "r2l", "snmpguess": "r2l",
+        "snmpgetattack": "r2l", "httptunnel": "r2l", "sendmail": "r2l", "named": "r2l",
+        "buffer_overflow": "u2r", "loadmodule": "u2r", "rootkit": "u2r",
+        "perl": "u2r", "sqlattack": "u2r", "xterm": "u2r", "ps": "u2r",
+    }
+    df["label"] = df["label"].map(lambda x: attack_map.get(x, "normal" if x == "normal" else x))
+    df.to_csv("nids_data.csv", index=False)
     print("Generated:", df.shape)
     print("\nClass distribution:")
     print(df["label"].value_counts())
